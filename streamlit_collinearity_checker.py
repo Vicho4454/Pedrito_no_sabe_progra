@@ -1,73 +1,75 @@
-
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import plotly.graph_objects as go
+from sympy import Point3D, Plane, Line3D
 
-# Title and description
-st.title("3D Visualization of Planes, Lines, and Vectors")
-st.write("This visualization includes two planes, two lines, a beam, and a 'sky' plane at z = 11.5.")
+# Título y descripción de la aplicación
+st.title("Cálculo y Visualización para el Problema 2")
+st.write("""
+Esta aplicación calcula y representa los elementos geométricos para la construcción de un túnel en el espacio 3D.
+Usaremos los puntos dados para calcular los planos, las rectas y los pilares del túnel.
+""")
 
-# Define points and vector normal
-N1 = np.array([4, -4, 0])  # Normal vector for planes
-point_on_plane1 = np.array([1, 1, -1])  # Point on P1
-point_on_plane2 = np.array([1, 1, 7.778174593052024])  # Point on P2
+# Coordenadas de los puntos A, B, y C
+A = Point3D(1, 2, 3)
+B = Point3D(2, 3, 9)
+C = Point3D(1, 2, 7)
 
-# Define t parameter range for lines and beam
-t_values = np.linspace(-5, 5, 100)
+# 1. Cálculo del vector normal del plano P1 que contiene A, B y C
+plane_P1 = Plane(A, B, C)
+normal_vector = plane_P1.normal_vector
+st.write(f"Vector normal del plano P1: {normal_vector}")
 
-# Line L1: starting point and direction
-L1_origin = np.array([1, 2, 3])
-L1_direction = np.array([0, 0, 4])
-L1_points = L1_origin + np.outer(t_values, L1_direction)
+# 2. Ecuación del plano P1
+st.write(f"Ecuación del plano P1: {plane_P1.equation()}")
 
-# Line L2: starting point and direction
-L2_origin = np.array([4.8890873, -1.8890873, 3])
-L2_direction = np.array([0, 0, 4])
-L2_points = L2_origin + np.outer(t_values, L2_direction)
+# 3. Distancia entre planos
+lambda_value = st.slider("Seleccione la distancia entre los planos P1 y P2 (λ)", 5.0, 6.0, 5.5)
 
-# Beam V: starting point and direction
-V_origin = np.array([1, 2, 6])
-V_direction = np.array([1, 0, 0])
-V_points = V_origin + np.outer(t_values, V_direction)
+# Plano P2 paralelo a P1 y a una distancia λ de P1
+P2_point = A + lambda_value * normal_vector.unit
+plane_P2 = Plane(P2_point, normal_vector)
+st.write(f"Ecuación del plano P2: {plane_P2.equation()}")
 
-# Define grid for planes P1 and P2
-x_vals = np.linspace(-10, 10, 100)
-y_vals = np.linspace(-10, 10, 100)
+# 4. Recta L1 que contiene los puntos A y C
+line_L1 = Line3D(A, C)
+st.write(f"Ecuación de la recta L1: {line_L1.equation()}")
+
+# 5. Recta L2 en el plano P2 paralela a L1
+L2_point = P2_point
+line_L2 = Line3D(L2_point, L2_point + (C - A))
+st.write(f"Ecuación de la recta L2: {line_L2.equation()}")
+
+# Visualización 3D
+fig = go.Figure()
+
+# Añadir puntos A, B, C en el plano P1
+fig.add_trace(go.Scatter3d(x=[A[0], B[0], C[0]], y=[A[1], B[1], C[1]], z=[A[2], B[2], C[2]],
+                           mode='markers', marker=dict(size=5, color="blue"), name="Puntos A, B, C"))
+
+# Añadir plano P1
+x_vals = np.linspace(-10, 10, 10)
+y_vals = np.linspace(-10, 10, 10)
 X, Y = np.meshgrid(x_vals, y_vals)
-Z1 = (-N1[0] * X - N1[1] * Y - 4) / N1[2] if N1[2] != 0 else np.zeros_like(X)
-Z2 = (-N1[0] * X - N1[1] * Y - 35.112698372208094) / N1[2] if N1[2] != 0 else np.zeros_like(X)
+Z_P1 = (-plane_P1.coefficients[0]*X - plane_P1.coefficients[1]*Y - plane_P1.coefficients[2])/plane_P1.coefficients[3]
+fig.add_trace(go.Surface(x=X, y=Y, z=Z_P1, opacity=0.5, colorscale="Blues", name="Plano P1"))
 
-# Define the sky plane at z = 11.5
-Z_sky = np.full_like(X, 11.5)
+# Añadir plano P2
+Z_P2 = (-plane_P2.coefficients[0]*X - plane_P2.coefficients[1]*Y - plane_P2.coefficients[2])/plane_P2.coefficients[3]
+fig.add_trace(go.Surface(x=X, y=Y, z=Z_P2, opacity=0.5, colorscale="Reds", name="Plano P2"))
 
-# Plotting all elements in 3D space
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+# Añadir rectas L1 y L2
+fig.add_trace(go.Scatter3d(x=[A[0], C[0]], y=[A[1], C[1]], z=[A[2], C[2]], mode='lines', name="Recta L1", line=dict(color="green")))
+fig.add_trace(go.Scatter3d(x=[L2_point[0], L2_point[0] + (C[0] - A[0])], 
+                           y=[L2_point[1], L2_point[1] + (C[1] - A[1])], 
+                           z=[L2_point[2], L2_point[2] + (C[2] - A[2])], 
+                           mode='lines', name="Recta L2", line=dict(color="purple")))
 
-# Plot planes
-ax.plot_surface(X, Y, Z1, color='cyan', alpha=0.5, rstride=100, cstride=100, edgecolor='none', label="Plane P1")
-ax.plot_surface(X, Y, Z2, color='orange', alpha=0.5, rstride=100, cstride=100, edgecolor='none', label="Plane P2")
-ax.plot_surface(X, Y, Z_sky, color='skyblue', alpha=0.3, rstride=100, cstride=100, edgecolor='none', label="Sky Plane")
+# Ajustes de la visualización
+fig.update_layout(scene=dict(
+    xaxis_title='X',
+    yaxis_title='Y',
+    zaxis_title='Z'
+), title="Visualización 3D de Planos y Rectas del Túnel")
 
-# Plot lines L1 and L2
-ax.plot(L1_points[:,0], L1_points[:,1], L1_points[:,2], color="blue", label="Line L1")
-ax.plot(L2_points[:,0], L2_points[:,1], L2_points[:,2], color="purple", label="Line L2")
-
-# Plot beam V
-ax.plot(V_points[:,0], V_points[:,1], V_points[:,2], color="green", linestyle="--", label="Beam V")
-
-# Vector normal N1
-ax.quiver(0, 0, 0, N1[0], N1[1], N1[2], color="red", length=5, normalize=True, label="Normal Vector N1")
-
-# Setting labels
-ax.set_xlabel("X-axis")
-ax.set_ylabel("Y-axis")
-ax.set_zlabel("Z-axis")
-ax.set_xlim([-10, 10])
-ax.set_ylim([-10, 10])
-ax.set_zlim([-10, 15])
-
-# Display legend and plot
-ax.legend()
-st.pyplot(fig)
+st.plotly_chart(fig)
