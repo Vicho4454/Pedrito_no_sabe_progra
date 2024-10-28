@@ -5,50 +5,69 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Title and description
-st.title("Collinearity Checker for 3D Points")
-st.write("Enter coordinates for three points in 3D space to check if they are collinear and visualize them.")
+st.title("3D Visualization of Planes, Lines, and Vectors")
+st.write("This visualization includes two planes, two lines, a beam, and a 'sky' plane at z = 11.5.")
 
-# Input fields for point coordinates
-A_x = st.number_input("A_x", value=1.0)
-A_y = st.number_input("A_y", value=2.0)
-A_z = st.number_input("A_z", value=3.0)
-B_x = st.number_input("B_x", value=2.0)
-B_y = st.number_input("B_y", value=3.0)
-B_z = st.number_input("B_z", value=9.0)
-C_x = st.number_input("C_x", value=1.0)
-C_y = st.number_input("C_y", value=2.0)
-C_z = st.number_input("C_z", value=7.0)
+# Define points and vector normal
+N1 = np.array([4, -4, 0])  # Normal vector for planes
+point_on_plane1 = np.array([1, 1, -1])  # Point on P1
+point_on_plane2 = np.array([1, 1, 7.778174593052024])  # Point on P2
 
-# Defining the points as numpy arrays
-A = np.array([A_x, A_y, A_z])
-B = np.array([B_x, B_y, B_z])
-C = np.array([C_x, C_y, C_z])
+# Define t parameter range for lines and beam
+t_values = np.linspace(-5, 5, 100)
 
-# Function to check if points are collinear
-def son_colineales(A, B, C):
-    AB = B - A
-    AC = C - A
-    # Use cross product to check collinearity
-    return np.all(np.cross(AB, AC) == 0)
+# Line L1: starting point and direction
+L1_origin = np.array([1, 2, 3])
+L1_direction = np.array([0, 0, 4])
+L1_points = L1_origin + np.outer(t_values, L1_direction)
 
-# Checking collinearity and displaying result
-if son_colineales(A, B, C):
-    st.write("The points are collinear.")
-else:
-    st.write("The points are not collinear.")
+# Line L2: starting point and direction
+L2_origin = np.array([4.8890873, -1.8890873, 3])
+L2_direction = np.array([0, 0, 4])
+L2_points = L2_origin + np.outer(t_values, L2_direction)
 
-# Plotting the points in 3D space
+# Beam V: starting point and direction
+V_origin = np.array([1, 2, 6])
+V_direction = np.array([1, 0, 0])
+V_points = V_origin + np.outer(t_values, V_direction)
+
+# Define grid for planes P1 and P2
+x_vals = np.linspace(-10, 10, 100)
+y_vals = np.linspace(-10, 10, 100)
+X, Y = np.meshgrid(x_vals, y_vals)
+Z1 = (-N1[0] * X - N1[1] * Y - 4) / N1[2] if N1[2] != 0 else np.zeros_like(X)
+Z2 = (-N1[0] * X - N1[1] * Y - 35.112698372208094) / N1[2] if N1[2] != 0 else np.zeros_like(X)
+
+# Define the sky plane at z = 11.5
+Z_sky = np.full_like(X, 11.5)
+
+# Plotting all elements in 3D space
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(*A, color='r', label="Point A")
-ax.scatter(*B, color='g', label="Point B")
-ax.scatter(*C, color='b', label="Point C")
-ax.plot([A[0], B[0]], [A[1], B[1]], [A[2], B[2]], color='gray', linestyle='--')
-ax.plot([A[0], C[0]], [A[1], C[1]], [A[2], C[2]], color='gray', linestyle='--')
+
+# Plot planes
+ax.plot_surface(X, Y, Z1, color='cyan', alpha=0.5, rstride=100, cstride=100, edgecolor='none', label="Plane P1")
+ax.plot_surface(X, Y, Z2, color='orange', alpha=0.5, rstride=100, cstride=100, edgecolor='none', label="Plane P2")
+ax.plot_surface(X, Y, Z_sky, color='skyblue', alpha=0.3, rstride=100, cstride=100, edgecolor='none', label="Sky Plane")
+
+# Plot lines L1 and L2
+ax.plot(L1_points[:,0], L1_points[:,1], L1_points[:,2], color="blue", label="Line L1")
+ax.plot(L2_points[:,0], L2_points[:,1], L2_points[:,2], color="purple", label="Line L2")
+
+# Plot beam V
+ax.plot(V_points[:,0], V_points[:,1], V_points[:,2], color="green", linestyle="--", label="Beam V")
+
+# Vector normal N1
+ax.quiver(0, 0, 0, N1[0], N1[1], N1[2], color="red", length=5, normalize=True, label="Normal Vector N1")
 
 # Setting labels
-ax.set_xlabel("X")
-ax.set_ylabel("Y")
-ax.set_zlabel("Z")
+ax.set_xlabel("X-axis")
+ax.set_ylabel("Y-axis")
+ax.set_zlabel("Z-axis")
+ax.set_xlim([-10, 10])
+ax.set_ylim([-10, 10])
+ax.set_zlim([-10, 15])
+
+# Display legend and plot
 ax.legend()
 st.pyplot(fig)
