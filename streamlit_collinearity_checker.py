@@ -1,7 +1,8 @@
+from sympy.abc import x, y, z
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from sympy import Point3D, Plane, Line3D
+from sympy import Point3D, Plane, Line3D, Matrix
 
 # Título y descripción de la aplicación
 st.title("Cálculo y Visualización para el Problema 2")
@@ -27,7 +28,11 @@ st.write(f"Ecuación del plano P1: {plane_P1.equation()}")
 lambda_value = st.slider("Seleccione la distancia entre los planos P1 y P2 (λ)", 5.0, 6.0, 5.5)
 
 # Plano P2 paralelo a P1 y a una distancia λ de P1
-P2_point = A + lambda_value * normal_vector.unit
+# Calculate magnitude using Matrix and norm
+normal_vector_magnitude = Matrix(normal_vector).norm()  # Use Matrix and norm to get magnitude
+normal_vector_matrix = Matrix(normal_vector)
+normal_vector_unit = normal_vector_matrix / normal_vector_magnitude
+P2_point = A + lambda_value * normal_vector_unit  # Use the unit vector here
 plane_P2 = Plane(P2_point, normal_vector)
 st.write(f"Ecuación del plano P2: {plane_P2.equation()}")
 
@@ -44,28 +49,28 @@ st.write(f"Ecuación de la recta L2: {line_L2.equation()}")
 fig = go.Figure()
 
 # Añadir puntos A, B, C en el plano P1
-fig.add_trace(go.Scatter3d(x=[A[0], B[0], C[0]], y=[A[1], B[1], C[1]], z=[A[2], B[2], C[2]],
+# Convert SymPy Point3D objects to numerical lists for Plotly
+fig.add_trace(go.Scatter3d(x=[float(A[0]), float(B[0]), float(C[0])],
+                           y=[float(A[1]), float(B[1]), float(C[1])],
+                           z=[float(A[2]), float(B[2]), float(C[2])],
                            mode='markers', marker=dict(size=5, color="blue"), name="Puntos A, B, C"))
 
 # Añadir plano P1
 x_vals = np.linspace(-10, 10, 10)
 y_vals = np.linspace(-10, 10, 10)
 X, Y = np.meshgrid(x_vals, y_vals)
-Z_P1 = (-plane_P1.coefficients[0]*X - plane_P1.coefficients[1]*Y - plane_P1.coefficients[2])/plane_P1.coefficients[3]
+# Convert SymPy coefficients to float
+a, b, c, d = float(plane_P1.equation().coeff(x)), float(plane_P1.equation().coeff(y)), float(
+    plane_P1.equation().coeff(z)), float(plane_P1.equation().coeff(1))
+# Avoid division by zero
+if c != 0:
+    Z_P1 = (-a * X - b * Y - d) / c
+else:
+    Z_P1 = np.zeros_like(X)  # Handle the case where c is 0
 fig.add_trace(go.Surface(x=X, y=Y, z=Z_P1, opacity=0.5, colorscale="Blues", name="Plano P1"))
 
 # Añadir plano P2
-Z_P2 = (-plane_P2.coefficients[0]*X - plane_P2.coefficients[1]*Y - plane_P2.coefficients[2])/plane_P2.coefficients[3]
-fig.add_trace(go.Surface(x=X, y=Y, z=Z_P2, opacity=0.5, colorscale="Reds", name="Plano P2"))
-
-# Añadir rectas L1 y L2
-fig.add_trace(go.Scatter3d(x=[A[0], C[0]], y=[A[1], C[1]], z=[A[2], C[2]], mode='lines', name="Recta L1", line=dict(color="green")))
-fig.add_trace(go.Scatter3d(x=[L2_point[0], L2_point[0] + (C[0] - A[0])], 
-                           y=[L2_point[1], L2_point[1] + (C[1] - A[1])], 
-                           z=[L2_point[2], L2_point[2] + (C[2] - A[2])], 
-                           mode='lines', name="Recta L2", line=dict(color="purple")))
-
-# Ajustes de la visualización
+# Convert Sym
 fig.update_layout(scene=dict(
     xaxis_title='X',
     yaxis_title='Y',
