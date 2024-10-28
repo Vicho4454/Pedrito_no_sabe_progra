@@ -27,12 +27,12 @@ st.write(f"Ecuación del plano P1: {plane_P1.equation()}")
 # 3. Distancia entre planos
 lambda_value = st.slider("Seleccione la distancia entre los planos P1 y P2 (λ)", 5.0, 6.0, 5.5)
 
-# Plano P2 paralelo a P1 y a una distancia λ de P1
-# Calculate magnitude using Matrix and norm
-normal_vector_magnitude = Matrix(normal_vector).norm()  # Use Matrix and norm to get magnitude
-normal_vector_matrix = Matrix(normal_vector)
-normal_vector_unit = normal_vector_matrix / normal_vector_magnitude
-P2_point = A + lambda_value * normal_vector_unit  # Use the unit vector here
+# Calcular la magnitud del vector normal
+normal_vector_magnitude = Matrix(normal_vector).norm()
+normal_vector_unit = Matrix(normal_vector) / normal_vector_magnitude  # Vector normal unitario
+
+# Determinar un punto en el plano P2 usando la distancia λ
+P2_point = A + lambda_value * normal_vector_unit  # Punto en el plano P2
 plane_P2 = Plane(P2_point, normal_vector)
 st.write(f"Ecuación del plano P2: {plane_P2.equation()}")
 
@@ -49,32 +49,53 @@ st.write(f"Ecuación de la recta L2: {line_L2.equation()}")
 fig = go.Figure()
 
 # Añadir puntos A, B, C en el plano P1
-# Convert SymPy Point3D objects to numerical lists for Plotly
 fig.add_trace(go.Scatter3d(x=[float(A[0]), float(B[0]), float(C[0])],
                            y=[float(A[1]), float(B[1]), float(C[1])],
                            z=[float(A[2]), float(B[2]), float(C[2])],
-                           mode='markers', marker=dict(size=5, color="blue"), name="Puntos A, B, C"))
+                           mode='markers', marker=dict(size=5, color="blue"), name="Puntos A, B, C en P1"))
 
-# Añadir plano P1
+# Añadir el plano P1
 x_vals = np.linspace(-10, 10, 10)
 y_vals = np.linspace(-10, 10, 10)
 X, Y = np.meshgrid(x_vals, y_vals)
-# Convert SymPy coefficients to float
-a, b, c, d = float(plane_P1.equation().coeff(x)), float(plane_P1.equation().coeff(y)), float(
+# Convertir los coeficientes del plano P1 a valores flotantes
+a1, b1, c1, d1 = float(plane_P1.equation().coeff(x)), float(plane_P1.equation().coeff(y)), float(
     plane_P1.equation().coeff(z)), float(plane_P1.equation().coeff(1))
-# Avoid division by zero
-if c != 0:
-    Z_P1 = (-a * X - b * Y - d) / c
+if c1 != 0:
+    Z_P1 = (-a1 * X - b1 * Y - d1) / c1
 else:
-    Z_P1 = np.zeros_like(X)  # Handle the case where c is 0
+    Z_P1 = np.zeros_like(X)
 fig.add_trace(go.Surface(x=X, y=Y, z=Z_P1, opacity=0.5, colorscale="Blues", name="Plano P1"))
 
-# Añadir plano P2
-# Convert Sym
+# Añadir el plano P2 paralelo a P1
+a2, b2, c2, d2 = float(plane_P2.equation().coeff(x)), float(plane_P2.equation().coeff(y)), float(
+    plane_P2.equation().coeff(z)), float(plane_P2.equation().coeff(1))
+if c2 != 0:
+    Z_P2 = (-a2 * X - b2 * Y - d2) / c2
+else:
+    Z_P2 = np.zeros_like(X)
+fig.add_trace(go.Surface(x=X, y=Y, z=Z_P2, opacity=0.5, colorscale="Reds", name="Plano P2"))
+
+# Añadir la recta L1 entre los puntos A y C en el plano P1
+fig.add_trace(go.Scatter3d(x=[float(A[0]), float(C[0])],
+                           y=[float(A[1]), float(C[1])],
+                           z=[float(A[2]), float(C[2])],
+                           mode='lines', line=dict(color="green", width=3), name="Recta L1 en P1"))
+
+# Añadir la recta L2 en el plano P2, paralela a L1
+fig.add_trace(go.Scatter3d(x=[float(L2_point[0]), float(L2_point[0] + (C[0] - A[0]))],
+                           y=[float(L2_point[1]), float(L2_point[1] + (C[1] - A[1]))],
+                           z=[float(L2_point[2]), float(L2_point[2] + (C[2] - A[2]))],
+                           mode='lines', line=dict(color="purple", width=3), name="Recta L2 en P2"))
+
+# Ajustes de la visualización
 fig.update_layout(scene=dict(
     xaxis_title='X',
     yaxis_title='Y',
-    zaxis_title='Z'
+    zaxis_title='Z',
+    xaxis=dict(nticks=10, range=[-10, 10]),
+    yaxis=dict(nticks=10, range=[-10, 10]),
+    zaxis=dict(nticks=10, range=[-10, 10])
 ), title="Visualización 3D de Planos y Rectas del Túnel")
 
 st.plotly_chart(fig)
